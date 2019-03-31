@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>KrakDiag Patient Panel</title>
+
+    <!-- Bootstrap -->
+    <link href="/css/bootstrap.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/animate.css"/>
+    <link rel="stylesheet" href="/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="/css/jquery.bxslider.css"/>
+    <link rel="stylesheet" type="/text/css" href="css/isotope.css" media="screen" />
+    <link rel="stylesheet" href="/js/fancybox/jquery.fancybox.css" type="text/css" media="screen" />
+    <link href="/css/tabsStyle.css" rel="stylesheet"/>
+    <link href="/css/style.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body th:onmousemove="${status !=null} ? 'refresh();'">
+<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse.collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" th:href="@{/index}">KrakDiag</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <div class="menu">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation"><a th:href="@{/index}">Home</a></li>
+                    <li role="presentation"><a th:href="@{/ourstory}">Our Story</a></li>
+                    <li role="presentation"><a th:href="@{/doctors}">Oto my</a></li>
+                    <li role="presentation"  class="active"><a th:href="@{/patientZone}">Patient Panel</a></li>
+                    <li role="presentation"><a th:href="@{/contact}">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="breadcrumb">
+    <h2>Panel Pacjenta</h2>
+</div>
+<div class="container">
+    <div class="row">
+        <div id="main_content">
+            <div class="col-md-8 col-md-offset-2">
+            <ul>
+                <li class="selected" id="page1" onclick="change_tab(this.id);">Umów termin badania</li>
+                <li class="notselected" id="page2" onclick="change_tab(this.id);">Zarządzaj terminami umówionych badań</li>
+                <li class="notselected" id="page3" onclick="change_tab(this.id);">Twoje Dane</li>
+            </ul>
+            </div>
+            <div class="hidden_desc row" id="page1_desc">
+                <!--<input type="text" th:text="${#dates.month(#dates.createNow())}">-->
+                <div class="col-md-6">
+                    <h2 th:if="${status != null}" th:text="${status}"></h2>
+                    <div th:if="${status == null}">
+                        <form th:action="@{/patientZone/type}" method="post" th:if="${typeOfExam == null}" >
+                            <h3>Wybierz typ badania na który chesz dokonać rejestracji</h3>
+                            <select id="examinationSelect" th:name="examType" onchange="this.form.submit();">
+                                <option selected disabled>Wybierz rodzaj badania</option>
+                                <option th:value="USG">USG</option>
+                                <option th:value="RTG">RTG</option>
+                                <option th:value="TK">TK</option>
+                            </select>
+                        </form>
+                    </div>
+                    <h3 th:if="${typeOfExam != null && status == null}">Wybierz dogodną datę badania</h3>
+                    <table th:if="${typeOfExam != null && status == null}" th:with="numberOfDay = ${#numbers.sequence(1,monthLength)}"
+                           th:class="${examinationForm != null} ? hidden_table : visible_table">
+                        <thead>
+                        <tr>
+                            <th>
+                                <span th:onclick="${examinationForm == null || ((monthNumber -1) <= #dates.month(#dates.createNow())) }
+                                 ? 'location.href=\'/patientZone/'  + ${monthNumber -1} + '/' + ${typeOfExam} + '\'' : '' "
+                                th:text="${(monthNumber -1) >= #dates.month(#dates.createNow())} ? '<<' : '' "></span>
+                            </th>
+                            <th th:text="${monthName}" colspan="5"></th>
+                            <th>
+                                <span th:onclick="${examinationForm == null} ? 'location.href=\'/patientZone/'  + ${monthNumber +1} + '/' + ${typeOfExam} + '\'' : '' ">>></span>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th th:each="dayName : ${daysName}" th:text="${dayName}"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="week : ${#numbers.sequence(1,numberOfWeeks)}">
+                            <td th:each="day : ${#numbers.sequence(1, 7)}"
+                                th:with="dayValue = ${(week == 1 && day >= firstDayOfMonth) ?
+                                    numberOfDay[(day-firstDayOfMonth)] : (week >1 && week < numberOfWeeks) ?
+                                        numberOfDay[(((week-1)*7)-firstDayOfMonth+day)] : (week == numberOfWeeks && day <= lastDayOfMonth) ?
+                                            numberOfDay[(((week-1)*7)-firstDayOfMonth+day)] : '' }"
+                                th:class="${blockedDays.contains(dayValue) || day == 6 || day == 7} ? hidden_td">
+                                <div  th:text="${dayValue}"
+                                      th:onclick="${examinationForm != null || blockedDays.contains(dayValue) || day == 6 || day == 7} ?
+                                      '' : 'location.href=\'/patientZone/exam/'  + ${dayValue} + '/' + ${typeOfExam} + '\''">
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <label></label>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" th:action="@{/registerExamination}" th:object="${examinationForm}" th:if="${examinationForm != null && status == null}">
+                        <label for="chosenDate"> Wybrana data badania:</label>
+                        <input id="chosenDate" type="text" th:field="*{examinationDate}" readonly><br/>
+                        <label for="chosenType"> Wybrany rodzaj badania:</label>
+                        <input id="chosenType" type="text" th:field="*{examinationType}" readonly><br/>
+                        <label for="timeSelect">Wybierz godzinę badania </label>
+                        <select id="timeSelect" th:field="*{examinationHour}" required>
+                            <option disabled selected th:value="null">Wybierz godzinę badania</option>
+                            <option th:each="hour : ${availableHours}" th:value="${hour}" th:text="${hour}"></option>
+                        </select>
+                        <textarea th:field="*{examinationNote}" placeholder="Opisz krótko swoje badanie, /n np. TK głowy, USG brzucha itp." required></textarea>
+                        <input type="submit" class="btn btn-default">
+                    </form>
+                </div>
+            </div>
+            <div class="hidden_desc row" id="page2_desc">
+                <h3>Lista przyszłych, zarejestrowanych badań</h3>
+                <div class="col-md-10 col-md-offset-1">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Badanie</th>
+                            <th>Data badania</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="examination : ${examinationList}">
+                            <td th:text="${examination.getExaminationNote()}"></td>
+                            <td th:text="${#dates.format(examination.getDateAsJavaUtil(), 'dd-MM-YYYY HH:mm')}"></td>
+                            <td>
+                                <button th:onclick="'location.href=\'/patientZone/change/' + ${examination.getId()} + '\''" class="btn btn-default">Zmień termina badania</button>
+                            </td>
+                            <td>
+                                <button th:onclick="'confirmDel(' + ${examination.getId()} +');'" class="btn btn-default">Odwołaj badanie</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+            <div class="hidden_desc row" id="page3_desc">
+                <h2>Twoje dane:</h2>
+               <a href="/patientZone/logout">Logout</a>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label th:text="'Imie:' +${userName}"></label>
+                    </div>
+                    <div class="col-md-8">
+                        <button class="btn btn-default">sffa</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label th:text="'Nazwisko:' +${userLastName}"></label>
+                    </div>
+                    <div class="col-md-8">
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label th:text="'Adres email:' +${userEmail}"></label>
+                    </div>
+                    <div class="col-md-8">
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Hasło</label>
+                    </div>
+                    <div class="col-md-8">
+                        <button  class="btn btn-default" th:onclick="'location.href=\'patientZone/changePassword\''">Zmień hasło</button>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="row">
+                <div class="col-md-10 col-md-offset-1" id="page_content"></div>
+            </div>
+
+        </div>
+        <br/>
+    </div>
+</div>
+
+<footer>
+    <div class="inner-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 f-about">
+                    <a th:href="@{/index}"><h1>KrakDiag</h1></a>
+                    <p>Nowoczesna diagnostyka obrazowa. <br/>Odpowiednia dniagnoza to podstawa w nowoczenej medycynie, my znamy się na tym najlepiej</p>
+
+                </div>
+                <div class="col-md-4 l-posts">
+                    <!--<h3 class="widgetheading">Latest Posts</h3>
+                    <ul>
+                        <li><a href="#">This is awesome post title</a></li>
+                        <li><a href="#">Awesome features are awesome</a></li>
+                        <li><a href="#">Create your own awesome website</a></li>
+                        <li><a href="#">Wow, this is fourth post title</a></li>
+                    </ul>-->
+                </div>
+                <div class="col-md-4 f-contact">
+                    <h3 class="widgetheading">Stay in touch</h3>
+                    <a href="#"><p><i class="fa fa-envelope"></i> biuro@krakdiag.pl</p></a>
+                    <p><i class="fa fa-phone"></i>  +48 12 123 45 67</p>
+                    <p><i class="fa fa-home"></i> KrakDiag s.c.  |  Wielicka 1586
+                        30-902 Kraków <br/>
+                        Polska</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="last-div">
+        <div class="container">
+            <div class="row">
+                <div class="copyright">
+                    © 2014 Me and Family Multi-purpose theme | <a href="http://bootstraptaste.com">Bootstraptaste</a>
+                </div>
+                <!--
+                    All links in the footer should remain intact.
+                    Licenseing information is available at: http://bootstraptaste.com/license/
+                    You can buy this theme without footer links online at: http://bootstraptaste.com/buy/?theme=MeFamily
+                -->
+
+
+                <ul class="social-network">
+                    <li><a href="#" data-placement="top" title="Facebook"><i class="fa fa-facebook fa-1x"></i></a></li>
+                    <li><a href="#" data-placement="top" title="Twitter"><i class="fa fa-twitter fa-1x"></i></a></li>
+                    <li><a href="#" data-placement="top" title="Linkedin"><i class="fa fa-linkedin fa-1x"></i></a></li>
+                    <li><a href="#" data-placement="top" title="Pinterest"><i class="fa fa-pinterest fa-1x"></i></a></li>
+                    <li><a href="#" data-placement="top" title="Google plus"><i class="fa fa-google-plus fa-1x"></i></a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="/js/jquery-2.1.1.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/wow.min.js"></script>
+<script src="/js/jquery.easing.1.3.js"></script>
+<script src="/js/jquery.bxslider.min.js"></script>
+<script src="/js/jquery.isotope.min.js"></script>
+<script src="/js/fancybox/jquery.fancybox.pack.js"></script>
+<script src="/js/functions.js"></script>
+<script src="/js/multiTabs.js"></script>
+<script>
+    wow = new WOW(
+        {
+
+        }	)
+        .init();
+</script>
+</body>
+</html>
